@@ -1,26 +1,31 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Http\Request;
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
+use App\Http\Resources\ProductResource;
+
 class ProductController extends Controller
 {
 
 public function index()
 {
-    $products = Product::all(); // You can use pagination too: Product::paginate(10)
-    return response()->json($products);
-}
-public function store(Request $request)
-{
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'price' => 'required|numeric|min:0',
-    ]);
+    // $products = Product::all(); // You can use pagination too: Product::paginate(10)
+    // return response()->json($products);
+    // $products = Product::latest()->paginate(10);
+    // return ProductResource::collection($products);
 
-    $product = Product::create($validated);
+    return ProductResource::collection(
+        Product::with('category')->paginate(10)
+    );
+
+}
+public function store(StoreProductRequest $request)
+{
+   
+    $product = Product::create($request->validated());
 
     return response()->json([
         'message' => 'Product created successfully',
@@ -28,7 +33,7 @@ public function store(Request $request)
     ], 201);
 }
 
-public function update(Request $request, $id)
+public function update(UpdateProductRequest $request, $id)
 {
     $product = Product::find($id);
 
@@ -36,19 +41,27 @@ public function update(Request $request, $id)
         return response()->json(['message' => 'Product not found'], 404);
     }
 
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'price' => 'required|numeric|min:0',
-    ]);
-
-    $product->update($validated);
+   
+    $product->update($request->validated());
 
     return response()->json([
         'message' => 'Product updated successfully',
         'data' => $product
     ]);
 }
+
+
+
+
+
+public function show(Product $product)
+{
+   return new ProductResource($product->load(['category', 'tags']));
+}
+
+
+
+
 
 public function destroy($id)
 {
